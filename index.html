@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Excel + Firebase</title>
+    <!-- Importa o Firebase (Versão 8 para facilitar o uso direto no HTML) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        .valor { font-size: 40px; color: green; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>Última Venda do Excel:</h1>
+    <div id="venda_tela" class="valor">R$ Aguardando...</div>
+    <p>Status: <span id="status_tela">...</span></p>
+
+    <script>
+        // 1. Configuração do seu Firebase
+        const firebaseConfig = {
+            // Coloque A SUA URL AQUI (sem o .json no final)
+            databaseURL: "https://robotica-15fa6-default-rtdb.firebaseio.com/dashboard_excel.json"
+        };
+        
+        // Inicializa o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // 2. Aponta para o mesmo "nó" que o VBA está enviando (dashboard_excel)
+        const refDashboard = database.ref('dashboard_excel');
+
+        // 3. A mágica do Tempo Real: o '.on' escuta qualquer mudança no banco
+        refDashboard.on('value', (snapshot) => {
+            const dados = snapshot.val();
+            
+            if (dados) {
+                // Atualiza o HTML instantaneamente quando o Excel envia o dado
+                document.getElementById('venda_tela').innerText = "R$ " + dados.venda_atual;
+                document.getElementById('status_tela').innerText = dados.status;
+                console.log("Dado atualizado!", dados);
+            }
+        });
+    </script>
+
+</body>
+</html>

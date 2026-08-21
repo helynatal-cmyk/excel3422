@@ -2,44 +2,127 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard Excel + Firebase</title>
-    <!-- Importa o Firebase (Versão 8 para facilitar o uso direto no HTML) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela do Excel em Tempo Real</title>
+    
+    <!-- Bibliotecas do Firebase (Versão 8) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
-        .valor { font-size: 40px; color: green; font-weight: bold; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            color: #107c41; /* Verde clássico do Excel */
+        }
+        /* Estilização da Tabela */
+        table {
+            width: 80%;
+            max-width: 800px;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #107c41;
+            color: white;
+            text-transform: uppercase;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        #status {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
 
-    <h1>Última Venda do Excel:</h1>
-    <div id="venda_tela" class="valor">R$ Aguardando...</div>
-    <p>Status: <span id="status_tela">...</span></p>
+    <h1>Dados do Excel em Tempo Real</h1>
+    <div id="status">Aguardando conexão com o Firebase...</div>
+    
+    <!-- Onde a tabela será desenhada -->
+    <div id="container_tabela"></div>
 
     <script>
-        // 1. Configuração do seu Firebase
+        // 1. CONFIGURAÇÃO DO FIREBASE
+        // Substitua o link abaixo pela URL do seu projeto Firebase
         const firebaseConfig = {
-            // Coloque A SUA URL AQUI (sem o .json no final)
-            databaseURL: "https://robotica-15fa6-default-rtdb.firebaseio.com/"
+            databaseURL: "https://robotica-15fa6-default-rtdb.firebaseio.com/" 
         };
         
-        // Inicializa o Firebase
+        // Inicializa o app do Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // 2. Aponta para o mesmo "nó" que o VBA está enviando (dashboard_excel)
-        const refDashboard = database.ref('dashboard_excel');
+        // 2. APONTA PARA O NÓ DOS DADOS
+        // Lembre-se: O VBA envia para "tabela_excel.json", então aqui lemos de "tabela_excel"
+        const refTabela = database.ref('dashboard_excel');
 
-        // 3. A mágica do Tempo Real: o '.on' escuta qualquer mudança no banco
-        refDashboard.on('value', (snapshot) => {
+        // 3. ESCUTA MUDANÇAS EM TEMPO REAL
+        refTabela.on('value', (snapshot) => {
             const dados = snapshot.val();
+            const statusDiv = document.getElementById('status');
+            const containerTabela = document.getElementById('container_tabela');
             
-            if (dados) {
-                // Atualiza o HTML instantaneamente quando o Excel envia o dado
-                document.getElementById('venda_tela').innerText = "R$ " + dados.venda_atual;
-                document.getElementById('status_tela').innerText = dados.status;
-                console.log("Dado atualizado!", dados);
+            // Limpa o container antes de desenhar a nova tabela
+            containerTabela.innerHTML = ""; 
+
+            if (dados && dados.length > 0) {
+                statusDiv.innerText = "Última atualização: " + new Date().toLocaleTimeString();
+                
+                // Cria os elementos da tabela HTML
+                const tabela = document.createElement('table');
+                const thead = document.createElement('thead');
+                const tbody = document.createElement('tbody');
+                
+                // Cria a linha de cabeçalho dinamicamente pegando as chaves do primeiro item
+                // Isso garante que se você mudar o título no Excel, muda aqui automaticamente
+                const cabecalhoTr = document.createElement('tr');
+                const chaves = Object.keys(dados[0]); 
+                
+                chaves.forEach(chave => {
+                    const th = document.createElement('th');
+                    th.innerText = chave;
+                    cabecalhoTr.appendChild(th);
+                });
+                thead.appendChild(cabecalhoTr);
+                tabela.appendChild(thead);
+
+                // Cria as linhas de dados dinamicamente
+                dados.forEach(linha => {
+                    const tr = document.createElement('tr');
+                    
+                    chaves.forEach(chave => {
+                        const td = document.createElement('td');
+                        td.innerText = linha[chave];
+                        tr.appendChild(td);
+                    });
+                    
+                    tbody.appendChild(tr);
+                });
+                
+                tabela.appendChild(tbody);
+                containerTabela.appendChild(tabela);
+                
+            } else {
+                statusDiv.innerText = "Nenhum dado encontrado no Firebase.";
             }
         });
     </script>
